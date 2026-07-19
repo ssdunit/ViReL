@@ -1,0 +1,6 @@
+#Task1 Directory
+
+Tasks/vlm-sft-flowerclassification/.venv
+Tasks/vlm-sft-flowerclassification/finalmodel
+Tasks/vlm-sft-flowerclassification/checkpoints
+Tasks/vlm-sft-flowerclassification/__pycache__
