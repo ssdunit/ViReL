@@ -4,3 +4,9 @@ Tasks/vlm-sft-flowerclassification/.venv
 Tasks/vlm-sft-flowerclassification/finalmodel
 Tasks/vlm-sft-flowerclassification/checkpoints
 Tasks/vlm-sft-flowerclassification/__pycache__
+
+#Task2 Directory
+
+Tasks/slm-grpo-gsm8k/.venv
+Tasks/slm-grpo-gsm8k/grpo-gsm8k-output
+Tasks/slm-grpo-gsm8k/__pycache__
