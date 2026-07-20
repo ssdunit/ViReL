@@ -5,13 +5,15 @@ import os
 import json
 
 # huggingface_hub.login(userdata.get("HF_TOKEN"))
+from Config import Config
+config = Config()
 
 def dataset_format():
-    train_dataset = load_dataset("dpdl-benchmark/oxford_flowers102", split="test").shuffle(seed=42)
-    eval_dataset  = load_dataset("dpdl-benchmark/oxford_flowers102", split="validation").shuffle(seed=42)
-    test_dataset = load_dataset("dpdl-benchmark/oxford_flowers102", split="train").shuffle(seed=42)
+    train_dataset = load_dataset(config.data.dataset, split="test").shuffle(config.data.seed)
+    eval_dataset  = load_dataset(config.data.dataset, split="validation").shuffle(config.data.seed)
+    test_dataset = load_dataset(config.data.dataset, split="train").shuffle(config.data.seed)
     label_feature = train_dataset.features["label"]
-    PROMPT = "Identify the flower species in this image and output structured JSON."
+    PROMPT = config.data.prompt
     def format_to_message(example):
         flower_name = label_feature.int2str(example["label"])
         target_dict = {"flower_type": flower_name, "confidence": 1.0}
