@@ -17,19 +17,11 @@ import wandb
 wandb.finish()
 
 from data_format import dataset_format
-from hyperparameters import hyperparameters
+from Config import Config
 
 train_formatted_datasets,eval_formatted_datasets,_ = dataset_format()
-config = hyperparameters()
+config = Config()
 
-#BitsandBytes Config
-cuda_available = torch.cuda.is_available()
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_use_double_quant=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.float16 if cuda_available else torch.float32
-)
 
 processor = AutoProcessor.from_pretrained(
     config.MODEL_ID,
@@ -37,19 +29,19 @@ processor = AutoProcessor.from_pretrained(
 )
 model = AutoModelForImageTextToText.from_pretrained(
     config.MODEL_ID,
-    quantization_config=bnb_config,
-    device_map="auto",
-    torch_dtype=torch.float16,
-    attn_implementation="sdpa",
+    quantization_config=config.model.bnb_config,
+    device_map=config.model.device_map,
+    torch_dtype=config.model.torch_dtype,
+    attn_implementation=config.model.attn_implementation,
 )
 
 peft_config = LoraConfig(
-    lora_alpha=config.lora_alpha,
-    lora_dropout=config.lora_dropout,
-    r=config.lora_r,
-    bias="none",
-    task_type="CAUSAL_LM",
-    target_modules=["q_proj","v_proj","k_proj","o_proj"]
+    lora_alpha=config.LR.lora_alpha,
+    lora_dropout=config.LR.lora_dropout,
+    r=config.LR.lora_r,
+    bias=config.LR.bias,
+    task_type=config.LR.task_type,
+    target_modules=list(config.LR.lora_target_modules)
 )
 
 target_model = model.model if hasattr(model, "model") and hasattr(model.model, "inputs_merger") else model
@@ -72,36 +64,36 @@ for name, param in model.named_parameters():
 
 training_args = SFTConfig(
     output_dir="results",
-    num_train_epochs=config.epochs,
-    per_device_train_batch_size=config.train_batch_size,
-    gradient_accumulation_steps=config.gradient_accumulation_steps,
-    learning_rate=config.learning_rate,
-    logging_steps=1,
+    num_train_epochs=config.hyp.epochs,
+    per_device_train_batch_size=config.hyp.train_batch_size,
+    gradient_accumulation_steps=config.hyp.gradient_accumulation_steps,
+    learning_rate=config.hyp.learning_rate,
+    logging_steps=config.tc.logging_steps,
     #save_strategy="epoch",
     #eval_strategy="epoch",
     remove_unused_columns=False,
     push_to_hub=False,
-    report_to="wandb",
-    run_name ="res768-smolvlm2-fc-v2",
-    optim="paged_adamw_8bit",
-    lr_scheduler_type="cosine",
+    report_to=config.wandb,
+    run_name =config.wandb_run,
+    optim=config.tc.optimizer,
+    lr_scheduler_type=config.tc.lr_scheduler_type,
     gradient_checkpointing=True,
     gradient_checkpointing_kwargs={"use_reentrant": True},
-    fp16=False,
-    bf16=True,
-    max_length=2048,
+    #fp16=False,
+    bf16=config.tc.bf16,
+    max_length=config.tc.max_length,
     use_liger_kernel=False,
     disable_tqdm = False,
     packing=False,
     dataloader_num_workers=2,
     dataloader_pin_memory=True,
     loss_type="nll",
-    warmup_ratio=0.05,
-    weight_decay=0.01,
+    warmup_ratio=config.tc.warmup_ratio,
+    weight_decay=config.tc.weight_decay,
     save_strategy="steps",
-    save_steps=200,
+    save_steps=config.tc.save_steps,
     eval_strategy="steps",
-    eval_steps=200,
+    eval_steps=config.tc.eval_steps,
     load_best_model_at_end=True,
     metric_for_best_model="eval_loss",
     greater_is_better=False,
@@ -123,7 +115,7 @@ trainer = SFTTrainer(
 trainer.train()
 
 wandb.finish()
-output_dir = "finalmodel/"
+output_dir = config.model_output_dir
 os.makedirs(output_dir, exist_ok=True)
 model.save_pretrained(output_dir)
 processor.save_pretrained(output_dir)
