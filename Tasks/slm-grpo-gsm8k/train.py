@@ -77,7 +77,7 @@ def main() -> None:
         report_to=config.grpo.report_to,
         seed=config.grpo.seed,
         remove_unused_columns=False,
-        use_vllm=False,
+        use_vllm=True,
         max_prompt_length=config.model.max_seq_length - config.grpo.max_completion_length,
     )
 

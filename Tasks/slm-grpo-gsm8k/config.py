@@ -36,7 +36,7 @@ class GRPOConfig:
     save_steps: int = 50
     save_total_limit: int = 3
     eval_strategy: str = "no"
-    bf16: bool = False
+    bf16: bool = True
     output_dir: str = "grpo-gsm8k-output"
     report_to: str = "wandb"
     seed: int = 42
