@@ -25,16 +25,22 @@ solution_start = DataConfig.F_tags.solution_start
 solution_end = DataConfig.F_tags.solution_end
 
 #Corectness reward
-def correctness_reward(prompts,completions,answer,**kwargs)->List[float]:
+import re
+import math
+from typing import List
+
+def correctness_reward(prompts, completions, answer, **kwargs) -> List[float]:
     """
-        Rewards for correct final answer
+        Rewards for correct final answer and close approximations.
 
         Args:
             completions: List of model completions
 
         IF model_ans == given_answer 
-        Give Reward 1.0
-        else
+        Give Reward 1.0 (or 0.5 if babbled)
+        ELIF model_ans is close to given_answer
+        Give Reward 0.4 to 0.05 based on distance
+        ELSE
         Give Reward 0.0
     """
     rewards = []
@@ -44,7 +50,7 @@ def correctness_reward(prompts,completions,answer,**kwargs)->List[float]:
         # Use case-insensitive search so we don't punish math for a formatting error
         match = re.search(rf"{solution_start}\s*(.*?)\s*{solution_end}", text, re.DOTALL | re.IGNORECASE)
         
-        gt_numeric = "".join(c for c in gt_answer if c.isdigit() or c=='.')
+        gt_numeric = "".join(c for c in str(gt_answer) if c.isdigit() or c=='.')
 
         if match:
             model_answer = match.group(1).strip()
@@ -57,12 +63,32 @@ def correctness_reward(prompts,completions,answer,**kwargs)->List[float]:
                     
                     if model_answer == model_numeric:
                         rewards.append(1.0)
-   
                     else:
                         rewards.append(0.5)
                     continue
-                    
+                
+                if len(model_numeric) > 0 and len(gt_numeric) > 0:
+                    try:
+                        mod_val = float(model_numeric)
+                        gt_val = float(gt_numeric)
+                        
+                        diff = abs(gt_val - mod_val)
+                        denominator = abs(gt_val) if gt_val != 0 else 1.0
+                        relative_error = diff / denominator
+                        
+                        # Max reward of 0.4 so it doesn't compete with exact matches (0.5/1.0)
+                        closeness_reward = 0.4 * math.exp(-3.0 * relative_error)
+                        
+                        # Only grant the reward if it's reasonably close (>0.05)
+                        if closeness_reward > 0.05:
+                            rewards.append(closeness_reward)
+                            continue
+                            
+                    except ValueError:
+                        pass 
+                        
         rewards.append(0.0)
+        
     return rewards
 
 #Strict formatting reward
@@ -244,4 +270,36 @@ def reasoning_length_reward(completions, **kwargs):
             # The tags were dropped entirely.
             rewards.append(0.0)
             
+    return rewards
+
+def overgeneration_penalty(prompts, completions, **kwargs) -> List[float]:
+    """
+    Penalizes the model if it continues generating text after the closing solution tag.
+    """
+    rewards = []
+    for completion in completions:
+        text = get_text(completion)
+        
+        match = re.search(rf"{solution_end}\s*(.+)", text, re.DOTALL | re.IGNORECASE)
+        match_2 = re.search(rf"^\s*{thinking_start}", text, re.DOTALL | re.IGNORECASE)
+        
+        if match:
+            leftover_text = match.group(1).strip()
+            # If there are more than 5 characters of extra gibberish, penalize
+            if len(leftover_text) > 5:
+                rewards.append(-0.5)
+                continue
+            elif len(leftover_text)<5 and len(leftover_text)>0:
+                rewards.append(-0.2)
+                continue
+        if match_2:
+            leftover_text = match_2.group(1).strip()
+            if(leftover_text)>5:
+                rewards.append(-0.5)
+                continue
+            elif(leftover_text)<5:
+                rewards.append(-0.2)
+                continue
+                
+        rewards.append(0.0)
     return rewards
