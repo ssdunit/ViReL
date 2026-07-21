@@ -17,25 +17,34 @@ def get_text(completion):
         return completion[-1]["content"]
     return completion
 
-reasoning_start = DataConfig.F_tags.reasoning_start
-reasoning_end = DataConfig.F_tags.reasoning_end
-thinking_start = DataConfig.F_tags.thinking_start
-thinking_end = DataConfig.F_tags.thinking_end
-solution_start = DataConfig.F_tags.solution_start
-solution_end = DataConfig.F_tags.solution_end
+config = DataConfig()
+
+reasoning_start = config.F_tags.reasoning_start
+reasoning_end = config.F_tags.reasoning_end
+thinking_start = config.F_tags.thinking_start
+thinking_end = config.F_tags.thinking_end
+solution_start = config.F_tags.solution_start
+solution_end = config.F_tags.solution_end
 
 #Corectness reward
-def correctness_reward(prompts,completions,answer,**kwargs)->List[float]:
+import re
+import math
+from typing import List
+
+def correctness_reward(prompts, completions, answer, **kwargs) -> List[float]:
     """
-        Rewards for correct final answer
+        Rewards for correct final answer and close approximations.
 
         Args:
             completions: List of model completions
 
         IF model_ans == given_answer 
-        Give Reward 1.0
-        else
+        Give Reward 1.0 (or 0.5 if babbled)
+        ELIF model_ans is close to given_answer
+        Give Reward 0.4 to 0.05 based on distance
+        ELSE
         Give Reward 0.0
+    """
     """
     rewards = []
     for completion, gt_answer in zip(completions, answer):
@@ -44,7 +53,7 @@ def correctness_reward(prompts,completions,answer,**kwargs)->List[float]:
         # Use case-insensitive search so we don't punish math for a formatting error
         match = re.search(rf"{solution_start}\s*(.*?)\s*{solution_end}", text, re.DOTALL | re.IGNORECASE)
         
-        gt_numeric = "".join(c for c in gt_answer if c.isdigit() or c=='.')
+        gt_numeric = "".join(c for c in str(gt_answer) if c.isdigit() or c=='.')
 
         if match:
             model_answer = match.group(1).strip()
@@ -57,12 +66,58 @@ def correctness_reward(prompts,completions,answer,**kwargs)->List[float]:
                     
                     if model_answer == model_numeric:
                         rewards.append(1.0)
-   
                     else:
                         rewards.append(0.5)
                     continue
-                    
+                
+                if len(model_numeric) > 0 and len(gt_numeric) > 0:
+                    try:
+                        mod_val = float(model_numeric)
+                        gt_val = float(gt_numeric)
+                        
+                        diff = abs(gt_val - mod_val)
+                        denominator = abs(gt_val) if gt_val != 0 else 1.0
+                        relative_error = diff / denominator
+                        
+                        # Max reward of 0.4 so it doesn't compete with exact matches (0.5/1.0)
+                        closeness_reward = 0.4 * math.exp(-3.0 * relative_error)
+                        
+                        # Only grant the reward if it's reasonably close (>0.05)
+                        if closeness_reward > 0.05:
+                            rewards.append(closeness_reward)
+                            continue
+                            
+                    except ValueError:
+                        pass 
+                        
         rewards.append(0.0)
+    """
+    rewards = []
+    for completion, gt_answer in zip(completions, answer):
+        text = get_text(completion)
+        reward = 0.0
+        gt_numeric = "".join(c for c in str(gt_answer) if c.isdigit() or c == '.')
+
+        match = re.search(rf"{solution_start}\s*(.*?)\s*(?:{solution_end}|$)", text, re.DOTALL | re.IGNORECASE)
+        
+        if match:
+            model_answer = match.group(1).strip()
+            numbers = re.findall(r'\d+\.?\d*', model_answer)
+            if numbers:
+                model_numeric = numbers[-1]
+                if model_numeric == gt_numeric and len(model_numeric) > 0:
+                    if model_answer == model_numeric:
+                        reward = 4.0 
+                    else:
+                        reward = 2.0 
+        
+        if reward == 0.0:
+            all_numbers = re.findall(r'\d+\.?\d*', text)
+            if all_numbers and gt_numeric in all_numbers[-2:]:
+                reward = 1.0
+                    
+        rewards.append(reward)
+        
     return rewards
 
 #Strict formatting reward
@@ -85,7 +140,7 @@ def strict_format_reward(prompts,completions,**kwargs)->List[float]:
     for completion in completions:
         text = get_text(completion)
         if re.search(pattern, text.strip(), re.DOTALL | re.IGNORECASE):
-            rewards.append(0.5)
+            rewards.append(0.3)
         else:
             rewards.append(0.0)
     return rewards
@@ -120,10 +175,10 @@ def xml_formatting_reward(prompts,completions,**kwargs)->List[float]:
         score = 0.0
         for open_tag, close_tag in tags:
             if open_tag in text and close_tag in text:
-                score += 0.2  
+                score += 0.25
                 
             elif open_tag.lower() in text_lower and close_tag.lower() in text_lower:
-                score += 0.1
+                score += 0.125
                 
         rewards.append(score)
     return rewards
@@ -188,7 +243,7 @@ def repetition_penalty_reward(prompts,completions,answer,**kwargs)->List[float]:
     """
         Penalty for repetitions in given n_gram chunks  
     """
-    n_gram = 3 
+    n_gram = 4
     max_penalty = -1.0 
     rewards = []
 
@@ -207,7 +262,7 @@ def repetition_penalty_reward(prompts,completions,answer,**kwargs)->List[float]:
         else:
             unique_ratio = 1.0
 
-        if unique_ratio < 0.8:
+        if unique_ratio < 0.7:
             penalty = max_penalty * (1.0 - unique_ratio)
             rewards.append(penalty)
         else:
@@ -222,26 +277,60 @@ def reasoning_length_reward(completions, **kwargs):
     Penalizes the model for bypassing the reasoning phase with ultra-short text.
     """
     rewards = []
-    
-    # Set a minimum character threshold for GSM8k reasoning. 
     # 150-200 characters is a safe baseline for a multi-step math problem.
     min_char_limit = 150 
+    text = get_text(completion)
     
     for completion in completions:
-        # Utilizing your updated case-insensitive regex
-        match = re.search(rf'{reasoning_start}(.*?){reasoning_end}', completion, re.DOTALL | re.IGNORECASE)
+        match = re.search(rf'{reasoning_start}(.*?){reasoning_end}', text, re.DOTALL | re.IGNORECASE)
         
         if match:
             reasoning_text = match.group(1).strip()
             
             if len(reasoning_text) >= min_char_limit:
-                # The model showed its work. Award the baseline completion points.
                 rewards.append(0.5) 
             else:
-                # The model attempted the silence exploit. Hard penalty.
                 rewards.append(0.0)
         else:
-            # The tags were dropped entirely.
             rewards.append(0.0)
             
+    return rewards
+
+def overgeneration_penalty(prompts, completions, **kwargs) -> List[float]:
+    """
+    Penalizes the model if it continues generating text after the closing solution tag.
+    """
+    rewards = []
+    for completion in completions:
+        text = get_text(completion)
+        penalty = 0.0
+        
+        # 1. Check for PRE-CHATTER (text before reasoning/thinking starts)
+        match_before = re.search(
+            rf"^\s*(.+?)\s*(?:{reasoning_start}|{thinking_start})", 
+            text, 
+            re.DOTALL | re.IGNORECASE
+        )
+        if match_before:
+            before_text = match_before.group(1).strip()
+            if len(before_text) > 5:
+                penalty -= 0.25
+            elif len(before_text) > 0:
+                penalty -= 0.1
+
+        # 2. Check for POST-CHATTER (text after solution ends)
+        match_after = re.search(
+            rf"{solution_end}\s*(.+)", 
+            text, 
+            re.DOTALL | re.IGNORECASE
+        )
+        if match_after:
+            after_text = match_after.group(1).strip()
+            if len(after_text) > 5:
+                penalty -= 0.25
+            elif len(after_text) > 0:
+                penalty -= 0.1
+                
+        rewards.append(penalty)
+        
     return rewards

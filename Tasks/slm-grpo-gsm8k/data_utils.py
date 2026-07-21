@@ -14,7 +14,7 @@ thinking_end = config.F_tags.thinking_end
 solution_start = config.F_tags.solution_start
 solution_end = config.F_tags.solution_end
 
-def load_gsm8k_dataset(config):
+def load_gsm8k_dataset(config=DataConfig()):
     #System prompt
     system_prompt = f"""You are a strict mathematics reasoning assistant. 
 You must solve the math problem step-by-step. Your entire response MUST be formatted exactly like this template:
@@ -105,8 +105,8 @@ Write ONLY the final numerical answer here.
         }
         
 
-    train_dataset = load_dataset(config.dataset,'main',split="train")
-    test_dataset = load_dataset(config.dataset,'main',split="test")
+    train_dataset = load_dataset(config.dataset,'main',split="train").shuffle(seed=42)
+    test_dataset = load_dataset(config.dataset,'main',split="test").shuffle(seed=42)
     formatted_train_dataset = train_dataset.map(
         format_custom_gsm8k,
         load_from_cache_file=False,

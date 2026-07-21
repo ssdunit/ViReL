@@ -15,7 +15,8 @@ from rewards import (
     xml_formatting_reward,
     cosine_scaled_reward,
     repetition_penalty_reward,
-    reasoning_length_reward
+    reasoning_length_reward,
+    overgeneration_penalty,
 )
 
 from utils import print_trainable_parameters, set_seed, setup_wandb
@@ -51,7 +52,7 @@ def main() -> None:
 
     print_trainable_parameters(model)
 
-    train_dataset, test_dataset = load_gsm8k_dataset(config=DataConfig())
+    train_dataset, test_dataset = load_gsm8k_dataset()
 
     training_args = TRLGRPOConfig(
         output_dir=config.grpo.output_dir,
@@ -88,8 +89,10 @@ def main() -> None:
             correctness_reward,
             strict_format_reward,
             xml_formatting_reward,
-            cosine_scaled_reward,
+            #cosine_scaled_reward,
             repetition_penalty_reward,
+            reasoning_length_reward,
+            overgeneration_penalty
         ],
         args=training_args,
         train_dataset=train_dataset,
