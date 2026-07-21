@@ -15,7 +15,8 @@ from rewards import (
     xml_formatting_reward,
     cosine_scaled_reward,
     repetition_penalty_reward,
-    reasoning_length_reward
+    reasoning_length_reward,
+    overgeneration_penalty,
 )
 
 from utils import print_trainable_parameters, set_seed, setup_wandb
@@ -88,8 +89,10 @@ def main() -> None:
             correctness_reward,
             strict_format_reward,
             xml_formatting_reward,
-            cosine_scaled_reward,
+            #cosine_scaled_reward,
             repetition_penalty_reward,
+            reasoning_length_reward,
+            overgeneration_penalty
         ],
         args=training_args,
         train_dataset=train_dataset,
