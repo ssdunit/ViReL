@@ -7,130 +7,94 @@ from datasets import load_dataset
 
 from config import ExperimentConfig
 
-SYSTEM_PROMPT = ("""You are a helpful math tutor solving grade-school math problems.
 
-Always respond in this exact format:
+SYSTEM_PROMPT = """You are a mathematics tutor solving grade-level math problems.
+
+Follow these rules:
+
+1. Always include both <reasoning> and <answer> tags.
+2. Always close both tags correctly.
+3. Do not use Markdown code blocks.
+4. Do not add any text before <reasoning>.
+5. Do not add any text after </answer>.
+6. The <answer> section must contain only the final numerical answer.
+7. Do not write words such as "The answer is" inside the <answer> tag.
+8. Give the final answer as a number whenever possible.
+9. For decimal answers, use a decimal number.
+10. For negative answers, include the minus sign.
+11. Carefully check your calculations before giving the final answer.
+
+Use exactly this format:
+
 <reasoning>
-Explain your step-by-step solution here, showing each calculation.
+Step-by-step mathematical reasoning goes here.
 </reasoning>
 <answer>
-42
+8
 </answer>
-#### 42
+"""
 
-Rules:
-- The <answer> tag must contain ONLY a plain integer, no units, symbols, or commas.
-- The number after #### must exactly match the number inside <answer> tags.
-- Do not skip the <reasoning> section.
--Show every arithmetic operation explicitly (e.g., write "12 - 2 = 10", not just "10").
-- Before writing your final answer, re-read the question and check that you
-  answered exactly what was asked (e.g., "how many are left" vs "how many were used").
-- If a problem has multiple steps, solve them in order and carry each result
-  forward correctly into the next step
 
-Example:
-Question: Sam has 3 boxes with 4 apples each. He eats 2 apples. How many apples does he have left?
-<reasoning>
-Sam starts with 3 boxes of 4 apples, so 3 x 4 = 12 apples.
-He eats 2 apples, so 12 - 2 = 10 apples remain.
-</reasoning>
-<answer>
-10
-</answer>
-#### 10""".
-)
-
-HASH_ANSWER_PATTERN = re.compile(r"####\s*([0-9\.\-]+)")
+HASH_ANSWER_PATTERN = re.compile(r"####\s*(.+?)\s*$", re.MULTILINE)
 
 
 def extract_hash_answer(text: str) -> Optional[str]:
-    """Extract the answer following #### from model output.
+    """Extract the final answer after ####."""
 
-    Args:
-        text: The model output text.
-
-    Returns:
-        The extracted answer string, or None if not found.
-    """
     match = HASH_ANSWER_PATTERN.search(text)
+
     if match:
         return match.group(1).strip()
-    return None
-
-
-def extract_final_number(text: str) -> Optional[str]:
-    """Extract the final numerical answer from text using multiple patterns.
-
-    Tries several patterns in order: #### marker, boxed notation,
-    'the answer is' phrasing, or the last number in the text.
-
-    Args:
-        text: The text to extract a number from.
-
-    Returns:
-        The extracted number as a string, or None if not found.
-    """
-    hash_match = HASH_ANSWER_PATTERN.search(text)
-    if hash_match:
-        return hash_match.group(1).strip()
-
-    boxed_match = re.search(r"\\boxed\{([^}]+)\}", text)
-    if boxed_match:
-        return boxed_match.group(1).strip()
-
-    answer_match = re.search(r"the answer is[:\s]*([0-9\.\-]+)", text, re.IGNORECASE)
-    if answer_match:
-        return answer_match.group(1).strip()
-
-    numbers = re.findall(r"[-]?\d+\.?\d*", text)
-    if numbers:
-        return numbers[-1]
 
     return None
 
 
-def normalize_number(num_str: str) -> float:
-    """Normalize a number string by removing commas and whitespace.
+def extract_reasoning(text: str) -> str:
+    """Extract GSM8K reasoning from the answer field.
 
-    Args:
-        num_str: The number string to normalize.
+    GSM8K format:
 
-    Returns:
-        The normalized number as a float.
+    reasoning steps...
+    #### final_answer
     """
-    cleaned = num_str.replace(",", "").replace(" ", "").replace("$", "")
-    return float(cleaned)
+
+    if "####" in text:
+        reasoning = text.split("####", 1)[0].strip()
+        return reasoning
+
+    return text.strip()
+
+
+def extract_final_answer(text: str) -> Optional[str]:
+    """Extract the final answer from GSM8K format."""
+
+    if "####" in text:
+        answer = text.split("####", 1)[1].strip()
+        return answer
+
+    return None
 
 
 def format_prompt(question: str) -> list[dict]:
-    """Format a question into chat messages for the Qwen2.5 template.
+    """Format question into chat messages."""
 
-    Args:
-        question: The math question to format.
-
-    Returns:
-        A list of message dictionaries in chat format.
-    """
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": question},
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT,
+        },
+        {
+            "role": "user",
+            "content": question,
+        },
     ]
 
 
 def load_gsm8k_dataset(
     config: ExperimentConfig,
 ) -> tuple:
-    """Load and preprocess the GSM8K dataset.
+    """Load and preprocess GSM8K dataset."""
 
-    Loads the dataset, formats prompts using the Qwen2.5 chat template,
-    and removes unused columns.
-
-    Args:
-        config: The experiment configuration.
-
-    Returns:
-        A tuple of (train_dataset, test_dataset).
-    """
     dataset = load_dataset(
         config.data.dataset_name,
         "main",
@@ -149,25 +113,52 @@ def load_gsm8k_dataset(
         )
 
     def _preprocess(example: dict) -> dict:
-        example["prompt"] = format_prompt(example["question"])
-        return example
+        gsm8k_answer = str(example["answer"])
+
+        return {
+            "prompt": format_prompt(example["question"]),
+
+
+            # Step-by-step reasoning as a string
+            "reasoning": extract_reasoning(gsm8k_answer),
+
+            # Final answer as a string
+            "final_answer": extract_final_answer(gsm8k_answer),
+        }
 
     train_dataset = train_dataset.map(
         _preprocess,
         num_proc=config.data.num_proc,
         desc="Formatting train prompts",
     )
+
     test_dataset = test_dataset.map(
         _preprocess,
         num_proc=config.data.num_proc,
         desc="Formatting test prompts",
     )
 
-    train_dataset = train_dataset.remove_columns(
-        [c for c in train_dataset.column_names if c not in ("prompt", "answer")]
+    # Keep prompt, reasoning, final answer and complete answer
+    columns_to_keep = (
+        "prompt",
+        "reasoning",
+        "final_answer",
     )
+
+    train_dataset = train_dataset.remove_columns(
+        [
+            c
+            for c in train_dataset.column_names
+            if c not in columns_to_keep
+        ]
+    )
+
     test_dataset = test_dataset.remove_columns(
-        [c for c in test_dataset.column_names if c not in ("prompt", "answer")]
+        [
+            c
+            for c in test_dataset.column_names
+            if c not in columns_to_keep
+        ]
     )
 
     return train_dataset, test_dataset
