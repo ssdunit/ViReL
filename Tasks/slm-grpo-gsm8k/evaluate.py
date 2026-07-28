@@ -1,3 +1,4 @@
+
 """Evaluation script for GRPO-trained models on GSM8K."""
 
 import re
@@ -6,7 +7,7 @@ from typing import Optional
 import torch
 from datasets import load_dataset
 from tqdm import tqdm
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, Qwen2Tokenizer
 
 from config import ExperimentConfig
 from data_utils import SYSTEM_PROMPT
@@ -54,7 +55,7 @@ def evaluate(
     Returns:
         The accuracy as a float between 0 and 1.
     """
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    tokenizer = Qwen2Tokenizer.from_pretrained(model_path,use_fast=False)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -67,7 +68,7 @@ def evaluate(
 
     dataset = load_dataset(
     config.data.dataset_name,
-    config.data.dataset_config_name,  # "main" or "socratic"
+    "main",  # "main" or "socratic"
     split=config.data.dataset_split_test,
 )
     if max_samples is not None:

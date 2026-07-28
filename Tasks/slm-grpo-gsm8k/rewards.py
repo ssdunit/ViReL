@@ -259,11 +259,11 @@ def correct_answer_check(
 
             except ValueError:
 
-                answer_reward = -0.5
+                answer_reward = 0.0
 
         else:
 
-            answer_reward = -0.5
+            answer_reward = 0.0
 
         rewards.append(answer_reward)
     return rewards

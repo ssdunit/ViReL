@@ -39,9 +39,9 @@ def main() -> None:
 
     model = AutoModelForCausalLM.from_pretrained(
         config.model.model_name,
-        torch_dtype=torch.float32,
+        torch_dtype=torch.bfloat16,
         attn_implementation=config.model.attn_implementation,
-        device_map="cpu"   
+        device_map="auto"   
     )
 
     print_trainable_parameters(model)
@@ -58,6 +58,7 @@ def main() -> None:
         temperature=config.grpo.temperature,
         top_p=config.grpo.top_p,
         learning_rate=config.grpo.learning_rate,
+        lr_scheduler_type=config.grpo.lr_scheduler_type,
         beta=config.grpo.beta,
         num_train_epochs=config.grpo.num_train_epochs,
         per_device_train_batch_size=config.grpo.per_device_train_batch_size,
@@ -67,10 +68,12 @@ def main() -> None:
         max_grad_norm=config.grpo.max_grad_norm,
         log_level=config.grpo.log_level,
         logging_steps=config.grpo.logging_steps,
+        eval_strategy=config.grpo.eval_strategy,
+        eval_steps=config.grpo.eval_steps,
         save_steps=config.grpo.save_steps,
         save_total_limit=config.grpo.save_total_limit,
         bf16=config.grpo.bf16,
-        use_cpu=True,
+        use_cpu=False,
         report_to=config.grpo.report_to,
         seed=config.grpo.seed,
         remove_unused_columns=False,
