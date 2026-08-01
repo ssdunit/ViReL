@@ -1,6 +1,6 @@
 import re
 ANSWER_PATTERN = re.compile(
-    r"^<think>.*?</think>\s*<answer>\s*([A-G])\s*</answer>$",
+    r"^<think>.*?</think>\s*<answer>\s*([A-F])\s*</answer>$",
     re.DOTALL,
 )
 def extract_answer(completion):
@@ -16,31 +16,6 @@ def extract_answer(completion):
     return match.group(1).upper()
 
     def format_reward(completions, **kwargs):
-    """
-    Reward outputs that follow the required format.
-
-    Correct:
-        <think>...</think>
-        <answer>B</answer>
-
-    Reward:
-        Correct format -> 1.0
-        Incorrect format -> 0.0
-    """
-
-    rewards = []
-
-    for completion in completions:
-
-        content = completion[0]["content"]
-
-        if ANSWER_PATTERN.match(content):
-            rewards.append(1.0)
-        else:
-            rewards.append(0.0)
-
-    return rewards
-def format_reward(completions, **kwargs):
     """
     Reward outputs that follow the required format.
 
@@ -82,7 +57,7 @@ def answer_correctness_reward(
 
     for completion, ground_truth in zip(
         completions,
-        answer,
+        answer_letter,
     ):
 
         content = completion[0]["content"]

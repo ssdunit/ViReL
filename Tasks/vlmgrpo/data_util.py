@@ -1,5 +1,4 @@
 """
-robo2vlm_data.py
 
 Data utility for Robo2VLM.
 
@@ -162,11 +161,11 @@ def preprocess_example(
 # ==========================================================
 
 def load_robo2vlm(
+    dataset_name:str,
     system_prompt: str,
     split: str = "train",
     max_samples: Optional[int] = None,
     seed: int = 42,
-    dataset:str
 ) -> Dataset:
     """
     Load and preprocess Robo2VLM.

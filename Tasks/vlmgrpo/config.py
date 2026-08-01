@@ -15,7 +15,7 @@ import torch
 
 @dataclass
 class ModelConfig:
-    MODEL_NAME: str = "qwen3-vl-32b-thinking"
+    MODEL_NAME: str = "unsloth/Qwen3-VL-32B-Thinking"
 
     MAX_SEQ_LENGTH:int=4096
 
@@ -109,6 +109,7 @@ class TrainConfig:
     EVAL_STEPS: int = 500
 
     EVAL_STRATEGY = "steps"
+    
 
     SAVE_TOTAL_LIMIT =2
 
@@ -126,9 +127,11 @@ class TrainConfig:
 
     DROPOUT: float = 0.0
 
-    BIAS="None"
+    BIAS: str="None"
 
-    BF16="True"
+    BF16: bool="True"
+
+    FP16: bool="False"
 
     RANDOM_STATE =42
     

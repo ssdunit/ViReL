@@ -3,7 +3,7 @@ import os
 import torch 
 from unsloth import FastVisionModel
 from trl import GRPOTrainer,GRPOConfig
-from robo2vlm_data import load_robo2vlm
+from data_util import load_robo2vlm
 from config import(
     ModelConfig,
     DataConfig,
@@ -53,7 +53,14 @@ def prepare_dataset():
         seed=DataConfig.SEED,
         eval_dataset=test_dataset,
     )
-    return train_dataset
+    test_dataset = load_robo2vlm(
+        dataset_name=DataConfig.DATASET_NAME,
+        split=DataConfig.TEST_SPLIT,
+        system_prompt=SYSTEM_PROMPT,
+        max_samples=DataConfig.MAX_TEST_SAMPLES,
+        seed=DataConfig.SEED,
+    )
+    return train_dataset,test_dataset
 
 def build_grpo_config():
     training_args = GRPOConfig(
@@ -114,7 +121,11 @@ def create_trainer(model, tokenizer, train_dataset, training_args):
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        reward_funcs=combined_reward,
+        test_dataset=test_dataset,
+        reward_funcs=[
+            answer_correctness_reward,
+            format_reward,
+        ],
         processing_class=tokenizer,
     )
 
@@ -140,7 +151,7 @@ def main():
 
     model = apply_lora(model)
 
-    train_dataset = prepare_dataset()
+    train_dataset,test_dataset = prepare_dataset()
 
     training_args = build_grpo_config()
 

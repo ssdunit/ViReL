@@ -78,11 +78,6 @@ def extract_model_answer(completion):
     """Extract model answer."""
 
     text = get_completion_text(completion)
-
-    # --------------------------------------------------
-    # 1. Preferred format:
-    # <answer>48</answer>
-    # --------------------------------------------------
     match = re.search(
         r"<answer>\s*(-?\d+(?:\.\d+)?)\s*</answer>",
         text,
@@ -92,10 +87,6 @@ def extract_model_answer(completion):
     if match:
         return match.group(1).strip()
 
-    # --------------------------------------------------
-    # 2. Fallback:
-    # Look for final number in model output
-    # --------------------------------------------------
     numbers = re.findall(
         r"(?<!\w)-?\d+(?:\.\d+)?",
         text,
@@ -189,7 +180,7 @@ def correct_answer_check(
         Within 10%         -> +1.0
         Within 20%         -> +0.5
         Incorrect          ->  0.0
-        Invalid/missing    -> -0.5
+
     """
 
     rewards = []
@@ -288,9 +279,7 @@ def xml_reward_system(
     </answer>
 
     Reward:
-        Correct format -> +0.5
-        Incorrect format -> -0.5
-    """
+        Correct format -> +0.5"""
 
     rewards = []
 
