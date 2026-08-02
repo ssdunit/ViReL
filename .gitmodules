@@ -1,0 +1,3 @@
+[submodule "rope-vit"]
+	path = rope-vit
+	url = https://github.com/naver-ai/rope-vit
