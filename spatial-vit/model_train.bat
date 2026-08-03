@@ -1,0 +1,19 @@
+python deit/main.py ^
+  --model edd_rope_mixed_deit_small_patch8_LS ^
+  --num_workers 0 ^
+  --dataset ILSVRC/imagenet-1k ^
+  --data-pct 100% ^
+  --input-size 224 ^
+  --batch-size 128 ^
+  --epochs 400 ^
+  --opt adamw ^
+  --lr 3e-3 ^
+  --weight-decay 0.02 ^
+  --warmup-epochs 5 ^
+  --drop-path 0.05 ^
+  --smoothing 0.1 ^
+  --mixup 0.8 --cutmix 1.0 ^
+  --aa rand-m9-mstd0.5-inc1 ^
+  --color-jitter 0.3 ^
+  --unscale-lr ^
+  --output_dir ./runs/edd_small_patch8_pretrain

@@ -12,3 +12,8 @@ Tasks/slm-grpo-gsm8k/grpo-gsm8k-output
 Tasks/slm-grpo-gsm8k/__pycache__
 Tasks/slm-grpo-gsm8k/unsloth_compiled_cache
 Tasks/slm-grpo-gsm8k/[0-9]*
+
+#Common Virtual environment
+spatial-vit/deit/__pycache__
+spatial-vit/wandb
+.venv

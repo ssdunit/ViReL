@@ -1,0 +1,23 @@
+# Core deep learning
+torch>=2.1.0
+torchvision>=0.16.0
+
+# Vision transformer building blocks (PatchEmbed, Mlp, DropPath, register_model, etc.)
+timm>=0.9.0,<1.0.0
+
+# Hugging Face Hub — pretrained checkpoint download (hf_hub_download) and model upload
+huggingface_hub>=0.20.0
+
+# Hugging Face Datasets — streaming/cached dataset loading (load_dataset with split slicing)
+datasets>=2.16.0
+
+# DeiT-III training script dependencies (deit/main.py, deit/datasets.py)
+Pillow>=9.0.0
+numpy<2.0.0
+scipy>=1.10.0
+
+# Mixup/CutMix, RandAugment, EMA used by deit/main.py
+tensorboard>=2.14.0
+
+# Optional: faster image decoding for ImageFolder-style local training
+#accimage; sys_platform == "linux"
