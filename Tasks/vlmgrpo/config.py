@@ -108,32 +108,37 @@ class TrainConfig:
 
     EVAL_STEPS: int = 500
 
-    EVAL_STRATEGY = "steps"
+    EVAL_STRATEGY:str  = "steps"
+
+    EVAL_BATCH_SIZE: int = 4
     
+    RESUME_FROM_CHECKPOINT: str | None = None
 
-    SAVE_TOTAL_LIMIT =2
+    SAVE_TOTAL_LIMIT:int  =2
 
-    SAVE_STRATEGY = "steps"
+    SAVE_STRATEGY: str= "steps"
 
-    LR_SCHEDULER_TYPE="cosine"
+    LR_SCHEDULER_TYPE: str ="cosine"
 
     WARMUP_RATIO: float=0.03
 
     MAX_GRAD_NORM: float=1.0
 
-    RANK: int = 32
+    RANK: int = 128
 
-    ALPHA: int = 64
+    ALPHA: int = 256
 
     DROPOUT: float = 0.0
 
-    BIAS: str="None"
+    BIAS: str="none"
 
-    BF16: bool="True"
+    BF16: bool=True
 
-    FP16: bool="False"
+    FP16: bool=False
 
-    RANDOM_STATE =42
+    REMOVE_UNUSED_COLUMNS: bool = False
+
+    LOGGING_FIRST_STEP: bool = True
     
     TARGET_MODULES = [
         "q_proj",
@@ -159,11 +164,11 @@ class GRPOConfig:
 
     MAX_COMPLETION_LENGTH: int = 512
 
-    BETA =0.04
+    BETA:float  =0.04
 
 @dataclass
 class LoggingConfig:
-    REPORT_TO="wandb"
-    RUN_NAME="robo2vlm-grpo"
-    PROJECT ="Robo2VLM"
-    LOG_LEVEL="info"
+    REPORT_TO: str="wandb"
+    RUN_NAME: str ="robo2vlm-grpo"
+    PROJECT: str ="Robo2VLM"
+    LOG_LEVEL: str ="info"

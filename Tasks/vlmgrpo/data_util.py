@@ -171,23 +171,26 @@ def load_robo2vlm(
     Load and preprocess Robo2VLM.
     """
 
-    dataset = load_dataset(
+    stream = load_dataset(
         dataset_name,
         split=split,
+        streaming=True,
     )
-
+    stream=stream.shuffle(
+    seed=seed,
+    buffer_size=10000,
+)
     if max_samples is not None:
-        dataset = (
-            dataset
-            .shuffle(seed=seed)
-            .select(range(min(max_samples, len(dataset))))
-        )
+        stream = stream.take(max_samples)
+
+    dataset = Dataset.from_list(list(stream))
 
     dataset = dataset.map(
         lambda x: preprocess_example(
             x,
             system_prompt,
         )
+    
     )
 
     return dataset
@@ -205,6 +208,7 @@ def load_robo2vlm_splits(
     """
     Return train and test datasets.
     """
+
 
     train = load_robo2vlm(
         system_prompt=system_prompt,
