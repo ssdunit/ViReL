@@ -17,3 +17,10 @@ Tasks/slm-grpo-gsm8k/[0-9]*
 spatial-vit/deit/__pycache__
 spatial-vit/wandb
 .venv
+
+#Task3 Directory
+Tasks/vlmgrpo/wandb
+Tasks/vlmgrpo/__pycache__
+Tasks/vlmgrpo/unsloth_compiled_cache
+Tasks/vlmgrpo/outputs
+Tasks/vlmgrpo/datasets
