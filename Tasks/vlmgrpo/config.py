@@ -1,0 +1,175 @@
+#configuration file
+"""
+config.py
+
+Configuration file for Robo2VLM GRPO training.
+"""
+
+from dataclasses import dataclass
+import torch 
+
+
+# ==========================================================
+# Model Configuration
+# ==========================================================
+
+@dataclass
+class ModelConfig:
+    MODEL_NAME: str = "unsloth/Qwen3-VL-8B-Thinking"
+
+    MAX_SEQ_LENGTH:int=2048
+
+    LOAD_IN_4BIT: bool=False 
+
+    TORCH_DTYPE: torch.dtype =torch.bfloat16
+
+    USE_GRADIENT_CHECKPOINTING: str="unsloth"
+
+    DEVICE_MAP: str="auto"
+
+
+
+
+# ==========================================================
+# Dataset Configuration
+# ==========================================================
+
+@dataclass
+class DataConfig:
+    DATASET_NAME: str = "keplerccc/Robo2VLM-1"
+
+    TRAIN_SPLIT: str = "train"
+
+    TEST_SPLIT: str = "test"
+
+    MAX_TRAIN_SAMPLES: int | None = None
+
+    MAX_TEST_SAMPLES: int | None = None
+
+    SEED: int = 42
+
+
+# ==========================================================
+# Prompt Configuration
+# ==========================================================
+
+SYSTEM_PROMPT = """
+You are an expert robotics vision-language assistant.
+
+You are given an image from a robot manipulation task together with a multiple-choice question.
+
+Your task is to reason carefully about the image and select the correct answer.
+
+Rules:
+1. You MUST start your response with <think>.
+2. Do all of your reasoning inside <think> and </think> tags.
+3. After thinking, output your final choice inside <answer> and </answer> tags.
+4. The content of the <answer> tag MUST be exactly ONE capital letter (e.g., A, B, C, D).
+5. Do not output any other text before <think> or after </answer>.
+
+Example of a perfect response:
+<think>
+Looking at the robot gripper, it is hovering directly above the red cube. The green sphere is further back. Therefore, the red cube is the closest object.
+</think>
+<answer>
+B
+</answer>
+"""
+
+@dataclass
+class TrainConfig:
+
+    OUTPUT_DIR: str = "./outputs"
+
+    NUM_EPOCHS: int = 2
+
+    BATCH_SIZE: int =2
+
+    LEARNING_RATE: float = 5e-7
+
+    WEIGHT_DECAY: float =0.01
+
+    OPTIM: str="paged_adamw_8bit"
+
+    ADAM_BETA1:float= 0.9
+
+    ADAM_BETA2:float=0.999
+
+    ADAM_EPSILON: float =1e-8
+
+    GRADIENT_ACCUMULATION_STEPS: int = 8
+
+    LOGGING_STEPS: int = 1
+
+    SAVE_STEPS: int = 50
+
+    EVAL_STEPS: int = 500
+
+    EVAL_STRATEGY:str  = "no"
+
+    EVAL_BATCH_SIZE: int = 8
+    
+    RESUME_FROM_CHECKPOINT: str | None = None
+
+    SAVE_TOTAL_LIMIT:int  = 3
+
+    SAVE_STRATEGY: str= "steps"
+
+    LR_SCHEDULER_TYPE: str ="cosine"
+
+    WARMUP_RATIO: float=0.03
+
+    WARMUP_STEPS: int=20
+
+    MAX_GRAD_NORM: float=0.5
+
+    RANK: int = 16
+
+    ALPHA: int = 16
+
+    DROPOUT: float = 0.0
+
+    BIAS: str="none"
+
+    BF16: bool=True
+
+    FP16: bool=False
+
+    REMOVE_UNUSED_COLUMNS: bool = True
+
+    LOGGING_FIRST_STEP: bool = True
+    
+    TARGET_MODULES = [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj",
+    ]
+    
+    RANDOM_STATE = 3407
+    Load_in_4bit: bool = False
+
+@dataclass
+class GRPOConfig:
+
+    NUM_GENERATIONS: int = 4
+
+    TEMPERATURE: float = 0.9
+
+    TOP_P: float = 0.95
+
+    MAX_PROMPT_LENGTH: int=1536
+
+    MAX_COMPLETION_LENGTH: int = 384
+
+    BETA:float  =0.15
+
+@dataclass
+class LoggingConfig:
+    REPORT_TO: str="wandb"
+    RUN_NAME: str ="robo2vlm-grpo"
+    PROJECT: str ="Robo2VLM"
+    LOG_LEVEL: str ="info"
