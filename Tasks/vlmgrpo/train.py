@@ -17,14 +17,57 @@ from reward import(
     answer_correctness_reward,
     format_reward,
 )
+from trl import SFTTrainer, SFTConfig
+from unsloth.trainer import UnslothVisionDataCollator 
+'''
+def build_sft_config():
+    return SFTConfig(
+        output_dir=TrainConfig.OUTPUT_DIR + "_sft_coldstart",
+        num_train_epochs=1,
+        per_device_train_batch_size=TrainConfig.BATCH_SIZE,
+        gradient_accumulation_steps=TrainConfig.GRADIENT_ACCUMULATION_STEPS,
+        learning_rate=2e-5,
+        lr_scheduler_type="cosine",
+        warmup_ratio=0.03,
+        bf16=TrainConfig.BF16,
+        fp16=TrainConfig.FP16,
+        logging_steps=TrainConfig.LOGGING_STEPS,
+        eval_steps = 100,
+        eval_strategy = "steps",
+        per_device_eval_batch_size = 4,
+        save_strategy="steps",
+        save_steps = 100,
+        save_total_limit = 3,
+        report_to=LoggingConfig.REPORT_TO,
+        run_name=LoggingConfig.RUN_NAME + "_sft_coldstart",
+        remove_unused_columns=False,
+        dataset_text_field="",       # required by SFTConfig for vision collators
+        max_seq_length=8192,
+    )
 
+def run_sft_cold_start(model, tokenizer):
+    FastVisionModel.for_training(model)
+
+    sft_train = load_spatialladder_sft(SYSTEM_PROMPT, tokenizer, split="train")
+    sft_eval = load_spatialladder_sft(SYSTEM_PROMPT,tokenizer,split="test")
+    trainer = SFTTrainer(
+        model=model,
+        tokenizer=tokenizer,
+        data_collator=UnslothVisionDataCollator(model, tokenizer),
+        train_dataset=sft_train,
+        eval_dataset = sft_eval,
+        args=build_sft_config(),
+    )
+    trainer.train()
+    return model
+    '''
 def setup_logging():
     os.environ["WANDB_PROJECT"]=LoggingConfig.PROJECT
     os.environ["WANDB_RUN_NAME"]=LoggingConfig.RUN_NAME
 
-def load_model():
+def load_model(model_path=None):
     model,tokenizer = FastVisionModel.from_pretrained(
-        model_name=ModelConfig.MODEL_NAME,
+        model_name=model_path or ModelConfig.MODEL_NAME,
         max_seq_length=ModelConfig.MAX_SEQ_LENGTH,
         dtype=ModelConfig.TORCH_DTYPE,
         load_in_4bit=TrainConfig.Load_in_4bit,
@@ -64,7 +107,7 @@ def prepare_dataset():
             SYSTEM_PROMPT,
         )
     )
-    return train_dataset
+	    return train_dataset
 """
 
 def build_grpo_config():
@@ -111,7 +154,8 @@ def build_grpo_config():
         num_generations=GRPOTrainConfig.NUM_GENERATIONS,
         temperature=GRPOTrainConfig.TEMPERATURE,
         top_p=GRPOTrainConfig.TOP_P,
-        max_prompt_length=GRPOTrainConfig.MAX_PROMPT_LENGTH,
+        #max_prompt_length=GRPOTrainConfig.MAX_PROMPT_LENGTH,
+        max_prompt_length = None,
         max_completion_length=GRPOTrainConfig.MAX_COMPLETION_LENGTH,
         beta=GRPOTrainConfig.BETA,
 
@@ -153,13 +197,42 @@ def merge_and_save_model(model,tokenizer,):
     )
 def main():
     setup_logging()
-
-    model, tokenizer = load_model()
-
+    '''SFT_CHECKPOINT = "./outputs_sft_coldstart/checkpoint-500"'''
+    model, tokenizer = load_model(model_path=None)
     model = apply_lora(model)
 
+    #model = run_sft_cold_start(model, tokenizer)
+    found_nonzero = False
+    for name, param in model.named_parameters():
+        if "lora_B" in name:
+            mean_abs = param.abs().mean().item()
+            print(f"{name}: mean_abs = {mean_abs:.6f}")
+            if mean_abs > 1e-6:
+                found_nonzero = True
+
+        if found_nonzero:
+            print("\n✅ SFT-trained adapter weights detected (lora_B is non-zero)")
+        else:
+            print("\n❌ lora_B is all zero — this is an UNTRAINED/fresh adapter, not your SFT checkpoint!")
     train_dataset = load_robo2vlm(dataset_name="robo2vlm",system_prompt = SYSTEM_PROMPT,tokenizer=tokenizer,split="train")
+    sample = train_dataset[0]
+    print("\n========== IMAGE TEST ==========")
+
+    print("Keys:", sample.keys())
+
+    print("Image object:", sample["images"][0])
+    print("Image type:", type(sample["images"][0]))
+    print("Image size:", sample["images"][0].size)
+    print("Image mode:", sample["images"][0].mode)
+
+    print("\nPrompt:")
+    print(sample["prompt"])
+
+    print("================================")
     test_dataset = load_robo2vlm(dataset_name="robo2vlm",system_prompt=SYSTEM_PROMPT,tokenizer=tokenizer, split="test")
+    sample = train_dataset[0]
+
+    
 
     training_args = build_grpo_config()
 

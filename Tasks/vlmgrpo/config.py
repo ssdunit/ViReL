@@ -65,14 +65,14 @@ Rules:
 2. Do all of your reasoning inside <think> and </think> tags.
 3. After thinking, output your final choice inside <answer> and </answer> tags.
 4. The content of the <answer> tag MUST be exactly ONE capital letter (e.g., A, B, C, D).
-5. Do not output any other text before <think> or after </answer>.
+5. Do not output any other text before <reason> or after </answer>.
 
-Example of a perfect response:
+response:
 <think>
-Looking at the robot gripper, it is hovering directly above the red cube. The green sphere is further back. Therefore, the red cube is the closest object.
+Within this should be the visual reasoning
 </think>
 <answer>
-B
+[correct option letter ]
 </answer>
 """
 
@@ -83,9 +83,9 @@ class TrainConfig:
 
     NUM_EPOCHS: int = 2
 
-    BATCH_SIZE: int =2
+    BATCH_SIZE: int =1
 
-    LEARNING_RATE: float = 5e-7
+    LEARNING_RATE: float = 1e-6
 
     WEIGHT_DECAY: float =0.01
 
@@ -97,7 +97,7 @@ class TrainConfig:
 
     ADAM_EPSILON: float =1e-8
 
-    GRADIENT_ACCUMULATION_STEPS: int = 8
+    GRADIENT_ACCUMULATION_STEPS: int = 16
 
     LOGGING_STEPS: int = 1
 
@@ -105,7 +105,7 @@ class TrainConfig:
 
     EVAL_STEPS: int = 500
 
-    EVAL_STRATEGY:str  = "no"
+    EVAL_STRATEGY:str  = "steps"
 
     EVAL_BATCH_SIZE: int = 8
     
@@ -121,11 +121,11 @@ class TrainConfig:
 
     WARMUP_STEPS: int=20
 
-    MAX_GRAD_NORM: float=0.5
+    MAX_GRAD_NORM: float=1.0
 
     RANK: int = 16
 
-    ALPHA: int = 16
+    ALPHA: int = 32
 
     DROPOUT: float = 0.0
 
@@ -155,17 +155,17 @@ class TrainConfig:
 @dataclass
 class GRPOConfig:
 
-    NUM_GENERATIONS: int = 4
+    NUM_GENERATIONS: int = 8
 
     TEMPERATURE: float = 0.9
 
-    TOP_P: float = 0.95
+    TOP_P: float = 0.9
 
     MAX_PROMPT_LENGTH: int=1536
 
-    MAX_COMPLETION_LENGTH: int = 384
+    MAX_COMPLETION_LENGTH: int =384
 
-    BETA:float  =0.15
+    BETA:float  = 0.15
 
 @dataclass
 class LoggingConfig:
@@ -173,3 +173,9 @@ class LoggingConfig:
     RUN_NAME: str ="robo2vlm-grpo"
     PROJECT: str ="Robo2VLM"
     LOG_LEVEL: str ="info"
+
+@dataclass
+class SFTdataConfig:
+    dataset_name="hongxingli/SpatialLadder-26k"
+    subset = "spatial"
+    split = "train"

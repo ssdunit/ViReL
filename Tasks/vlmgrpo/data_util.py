@@ -19,7 +19,7 @@ import ast
 from typing import Any, Dict, List, Optional
 
 from datasets import Dataset, DatasetDict, load_from_disk
-
+from datasets import load_dataset
 
 # ==========================================================
 # Dataset Constants
@@ -98,7 +98,6 @@ def build_prompt(
     choices = parse_choices(example["choices"])
 
     question = example["question"].strip()
-
     choice_block = build_choice_block(choices)
     """
     user_text = (
@@ -116,6 +115,7 @@ def build_prompt(
         f"<think>\n[Your visual reasoning here]\n</think>\n"
         f"<answer>\n[Option Letter]\n</answer>"
     )
+    image = example["image"].convert("RGB")
 
     messages = [
         {
@@ -132,6 +132,7 @@ def build_prompt(
             "content": [
                 {
                     "type": "image",
+                    "image":image,
                 },
                 {
                     "type": "text",
@@ -140,13 +141,7 @@ def build_prompt(
             ],
         },
     ]
-    prompt_str = tokenizer.apply_chat_template(
-        messages, 
-        tokenize=False, 
-        add_generation_prompt=True
-    )
-    
-    return prompt_str
+    return messages
 from PIL import Image
 
 def aggressive_image_filter(example):
@@ -189,6 +184,7 @@ def preprocess_example(
     choices = parse_choices(example["choices"])
 
     answer_idx = int(example["correct_answer"])
+    image = example["image"].convert("RGB")
 
     return {
         "prompt": build_prompt(
@@ -196,7 +192,7 @@ def preprocess_example(
             system_prompt,
             tokenizer,
         ),
-        "images": [example["image"]],
+        "images": [image],
         "answer_idx": answer_idx,
         "answer_letter": LETTERS[answer_idx],
         "num_choices": len(choices),
@@ -220,9 +216,9 @@ def load_robo2vlm(
     Load and preprocess Robo2VLM.
    """
     if split=="train":
-        dataset= load_from_disk("./datasets/ROBO2VLM_train_10k")
+        dataset= load_from_disk("./datasets/robo2vlm_train_10k")
     elif split=="test":
-        dataset=load_from_disk("./datasets/ROBO2VLM_test_2k")
+        dataset=load_from_disk("./datasets/robo2vlm_test_2k")
     else:
     	raise ValueError(f"Unkown split: {split}")
     dataset = dataset.map(
@@ -232,7 +228,7 @@ def load_robo2vlm(
         tokenizer,
        	),
 	num_proc = 16,
-        load_from_cache_file=False,
+        load_from_cache_file=True,
     )
     keep_cols = {"prompt", "images","answer_letter"}
     drop_cols = [c for c in dataset.column_names if c not in keep_cols]
@@ -275,3 +271,34 @@ def load_robo2vlm_splits(
             "test": test,
         }
     )
+import os
+'''def load_spatialladder_sft(system_prompt, tokenizer, split="train", test_size=0.01, seed=42):
+    SPATIALLADDER_IMAGES_ROOT = "/home/ju"
+    MAX_IMAGES_PER_EXAMPLE = 4
+    dataset = load_dataset("hongxingli/SpatialLadder-26k",name="spatial")["train"]
+    dataset = dataset.train_test_split(test_size=test_size,seed=seed)[split]
+    def resolve_path(p):
+        return os.path.join(SPATIALLADDER_IMAGES_ROOT, p)
+    def to_conversation(example):
+        img = example["image"]
+        images = img if isinstance(img, list) else [img]
+        if len(images) > MAX_IMAGES_PER_EXAMPLE:
+            images = images[:MAX_IMAGES_PER_EXAMPLE]
+        images = [resolve_path(im) if isinstance(im, str) else im for im in images]
+        answer_text = (
+            f"<think>\n"
+            f"{example.get('reasoning', 'Based on the visual evidence in the image(s).')}\n"
+            f"</think>\n"
+            f"<answer>\n{example['answer']}\n</answer>"
+        )
+        content = [{"type": "image", "image": im} for im in images]
+        content.append({"type": "text", "text": example["question"]})
+        return {
+            "messages": [
+                {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
+                {"role": "user", "content": content},
+                {"role": "assistant", "content": [{"type": "text", "text": answer_text}]},
+            ]
+        }
+    return dataset.map(to_conversation, remove_columns=dataset.column_names)
+'''
