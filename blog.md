@@ -61,7 +61,7 @@ Our project, ViReL, is built to cure this exact spatial blindness. By systematic
 # <font style="font-family:Merriweather"> 3. What have we worked on? </font>
 
 <font style="font-size:16px">
-Before jumping on the actual finetuning of VLMs on the said policies we actually finetuned VLMs on Supervised Finetuning for a very simple task of flower detection and Read about GRPO thoroughly through Deepseek research papers with their applied pipelines for their base model (Deepseek-V3-base). To actually implement and understand GRPO we finetuned an Small language model(SLM) on GRPO for grade school maths (**Dataset**: *OpenAI-gsm8k*)
+Before jumping on the actual finetuning of VLMs on the said policies we actually finetuned VLMs on Supervised Finetuning for a very simple task of flower detection and Read about GRPO thoroughly through Deepseek research papers with their applied pipelines for their base model (Deepseek-V3-base). To actually implement and understand GRPO we finetuned an Small language model(SLM) on GRPO for grade school maths (Dataset: OpenAI-gsm8k)
 </font>
 
 ## <font style="font-family:Merriweather"> 3.1 Proof of Concept 1- SFT on VLMs (Flower Classification) [[1](#training-and-evaluation-metrics)][[2](#inference)]</font>
@@ -70,15 +70,15 @@ Before touching spatial reasoning, we validated the supervised fine-tuning (SFT)
 
 The initial training metrics looked excellent. Mean token accuracy on the evaluation set converged to **~0.99**, and eval loss dropped to **~0.05** within roughly **1,000 steps** for the higher-resolution run. However, a corrected, held-out test split told a completely different story: actual task accuracy landed at just **42.45% (433/1020)**.
 
-This stark contrast gave a critical lesson: token-level SFT is a poor proxy for task-level correctness. The model easily memorized the JSON format and vocabulary, but failed once the evaluation protocol shifted slightly from the training distribution. It is the exact same class of failure—“the model looks confident but isn't grounded”—that motivated our pivot to RL objectives that score the actual output rather than next-token likelihood.
+This contrast gave a critical lesson: token-level SFT is a poor alternative for task-level correctness. The model easily memorized the JSON format and vocabulary, but failed once the evaluation protocol shifted slightly from the training distribution. It is the exact same class of failure—“the model looks confident but isn't grounded”—that motivated our pivot to RL objectives that score the actual output rather than next-token likelihood.
 
 This task helped us learn how to read and analyze metric charts
 ### Training and Evaluation metrics
-![Evaluation metrics](https://i.ibb.co/vMPYn7H/VLMCHARTS.png) 
+![Evaluation metrics](https://i.ibb.co/KxcZvFpw/image.png) 
 
 *Evaluation metrics(v1 and v2)*
 
-![Training metrics](https://i.ibb.co/pjXHXBqx/VLMCHARTS.png) 
+![Training metrics](https://i.ibb.co/chhT6Vmy/image.png) 
 
 *Training metrics(v1 and v2)*
 
@@ -96,7 +96,7 @@ As we can see in the charts the model's loss was nearly 0 at very early steps, b
 
 ## <font style="font-family:Merriweather">3.2 Proof of concept 2 — GRPO on an SLM for GSM8K</font>
 
-To de-risk the RL infrastructure independent of the vision modality, we ran Group Relative Policy Optimization (GRPO) — the algorithm introduced in DeepSeekMath — on a small language model against GSM8K, using Unsloth + TRL's GRPOTrainer.
+We ran Group Relative Policy Optimization (GRPO) — the algorithm introduced in DeepSeekMath — on a small language model against GSM8K, using Unsloth + TRL's GRPOTrainer to get a better understanding of GRPO as well as the rewards system
 
 ### Why GRPO over PPO?
 
