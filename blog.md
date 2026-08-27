@@ -5,17 +5,17 @@
 ---
 ## List of Contents
 * ### [Introduction](#-1-introduction-1-2)
-    * ### [What is ViReL?](#what-is-virel)
+    * ### [What is ViReL?](#what-is-virel-1)
     * ### [Overview](#overview-1)
 * ### [Problem setting](#-2-problem-setting-1)
     * ### [Core issues](#the-core-spatial-problems-we-need-to-fix)
-* ### [3. What have we worked on?](#3-what-have-we-worked-on-1)
-    * ### [3.1 SFT on VLMs (Flower Classification)](#31-proof-of-concept-1--sft-on-vlms-flower-classification-12)
-        * ### [Charts](#charts)
+* ### [3. What have we worked on?](#-3-what-have-we-worked-on-)
+    * ### [3.1 SFT on VLMs (Flower Classification)](#-31-proof-of-concept-1--sft-on-vlms-flower-classification-12)
+        * ### [Charts](#training-and-evaluation-metrics)
         * ### [Inference](#inference-1)
     * ### [3.2 GRPO on an SLM for GSM8K (Grade school maths)](#32-proof-of-concept-2--grpo-on-an-slm-for-gsm8k)
         * ### [GRPO vs PPO](#why-grpo-over-ppo)
-        * ### [Mathematical burden of PPO](#mathematical-burden-of-ppo)
+        * ### [Mathematical burden of PPO](#the-mathematical-burden-of-ppo)
         * ### [What is GRPO?](#what-is-on-policy-grpo)
 
 
@@ -127,23 +127,23 @@ In standard Proximal Policy Optimization (PPO), the algorithm optimizes the poli
 
 The Advantage function $A_t$ basically references this critic model:
 
-$\hat{A_t} = R_t - V_\phi(s_t)$ 
+$$\hat{A_t} = R_t - V_\phi(s_t)$$
 
 The PPO algorithm has to constantly update two objective Functions
 
 First the **actor objective**:
 
-$L^{CLIP}(\theta)=\mathbb{\hat{E}}\left[\min\ (\dfrac{\pi_\theta(a_t|s_t)}{\pi_{old}(a_t|s_t)}\hat{A_t}, \operatorname{clip}\ (r_t(\theta),1-\epsilon,1+\epsilon)\hat{A_t}\right]$
+$$L^{CLIP}(\theta)=\mathbb{\hat{E}}\left[\min\ (\dfrac{\pi_\theta(a_t|s_t)}{\pi_{old}(a_t|s_t)}\hat{A_t}, \mathop{\mathrm{clip}}\ (r_t(\theta),1-\epsilon,1+\epsilon)\hat{A_t}\right]$$
 
 Here we clip objective term $r_t(\theta)\hat{A_t}$ to prevent over rewarding or underrewarding 
 
 Second the **critic objective** (training the value network to predict better baselines for every iteration):
 
-$L^{VF}(\phi)=\mathbb{\hat{E}}\left[(V_\phi-R_t)^2\right]$
+$$L^{VF}(\phi)=\mathbb{\hat{E}}\left[(V_\phi-R_t)^2\right]$$
 
 Effective the overall objective is calculated by combining the clip objective term, the critic objective term and entropy bonus:
 
-$L^{CLIP+VF+S} = \mathbb{\hat{E}}\left[L^{CLIP}-c_1L^{VF}+c_2S[\pi_\theta](s_t)\right]$
+$$L^{CLIP+VF+S} = \mathbb{\hat{E}}\left[L^{CLIP}-c_1L^{VF}+c_2S[\pi_\theta][s_t]\right]$$
 
 Because $\pi_\theta$ (the Actor VLM) and $V_\phi$ (the Critic VLM) are often identical in architecture and size, optimizing $L^{VF}(\phi)$ effectively doubles your GPU memory requirements.
 Continuous updates of the overall objective function takes up a lot of GPU memory. You are actively training a second Massive Language Model just to guess the baseline advantage.
@@ -258,7 +258,7 @@ Let us see how GRPO works
 For a given question or visual prompt $q \sim P(Q)$, the current policy $\pi_{\theta_{\text{old}}}$ generates a group of $G$ distinct candidate outputs.
 Depending on the compute available we can choose the number of these rollouts:
 
-$\mathcal{O} = \{o_1, o_2, \dots, o_G\}$
+$$\mathcal{O} = \{o_1, o_2, \dots, o_G\}$$
 
 Sampling multiple rollouts allows the policy for more **exploration**, Some might hallucinate while others give out the correct answers.
 
@@ -266,13 +266,13 @@ Sampling multiple rollouts allows the policy for more **exploration**, Some migh
 
 Each candidate output $o_i$ is evaluated against a suite of reward functions to compute a scalar reward $r_i$:
 
-$r_i = r_{correctness}(o_i)+r_{format}(o_i)+...$
+$$r_i = r_{correctness}(o_i)+r_{format}(o_i)+...$$
 
 ### 3. Group relative Advantage estimation
 
 Instead of computing temporal-difference errors with a Critic network, GRPO normalizes each response's reward relative to its peers within the sampled group:
 
-$\hat{A_i}=\dfrac{r_i-\operatorname{mean}(r_i)}{\operatorname{std(r_i)\,+\,\epsilon}}$
+$$\hat{A_i} = \dfrac{r_i - \mathop{\mathrm{mean}}(r_i)}{\mathop{\mathrm{std}}(r_i) + \epsilon}$$
 
 Here we add small epsilon alongside standard deviation to prevent $DivisionByZero$ error.
 
@@ -288,11 +288,11 @@ Here we add small epsilon alongside standard deviation to prevent $DivisionByZer
 
 GRPO retains PPO's clipped surrogate objective to prevent destructively large policy updates. For each token sequence, the probability ratio is defined as:
 
-$\rho_i(\theta)=\dfrac{\pi_{\theta}(o_i|q)}{\pi_{\theta_{old}}(o_i|q)}$
+$$\rho_i(\theta)=\dfrac{\pi_{\theta}(o_i|q)}{\pi_{\theta_{old}}(o_i|q)}$$
 
 The surrogate objective clips this ratio within a trust region $[1-\epsilon, 1+\epsilon]$:
 
-$\mathcal{L}^{CLIP}(\theta)=\dfrac{1}{G}\displaystyle \sum_{i=1}^{G}\min(\,\rho_i(\theta)\hat{A_i},\,\operatorname{clip}(\rho_i(\theta),1-\epsilon,1+\epsilon)\hat{A_i})$
+$$\mathcal{L}^{CLIP}(\theta) = \dfrac{1}{G} \displaystyle \sum_{i=1}^{G} \min\left(\rho_i(\theta)\hat{A_i}, \mathop{\mathrm{clip}}(\rho_i(\theta), 1-\epsilon, 1+\epsilon)\hat{A_i}\right)$$
 
 ### Why we clip?
 
@@ -308,14 +308,16 @@ Why it matters: If clipping didn't stop Pass 2, the optimizer would overwrite mi
 
 To ensure the policy does not drift too far from the reference model $\pi_{\text{ref}}$ (which leads to reward hacking or linguistic collapse), GRPO adds an explicit KL divergence penalty directly to the objective. If the model explores more the KL spikes up suggesting that the model is completely different model, this may or may not suggest that the model is actually reward hacking or not. If the rewards constantly grows with a stable KL divergence we for sure know the model is learning rather than reward hacking:
 
-$\mathbb{D}_{KL}(\pi_{\theta}\,||\,\pi_{ref})=\dfrac{\pi_{ref}(o_i|q)}{\pi_{\theta}(o_i|q)}-\log\left(\dfrac{\pi_{ref}(o_i|q)}{\pi_{\theta}(o_i|q)}\right)-1$
+$$ \mathbb{D}_{KL}(\pi_{\theta} \parallel \pi_{ref}) = \dfrac{\pi_{ref}(o_i|q)}{\pi_{\theta}(o_i|q)} - \log\left(\dfrac{\pi_{ref}(o_i|q)}{\pi_{\theta}(o_i|q)}\right) - 1 $$
 
 ![KL-Divergence Visual](https://i.ibb.co/ynLxjx8n/image.png)
 
 *KL Divergence Visual*
 
 ### The Full GRPO Objective Function
-Combining the group surrogate loss and the reference penalty yields the final optimization objective:$$\mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{q \sim P(Q), \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}} \left[ \frac{1}{G} \sum_{i=1}^G \left( \min \left( \rho_i(\theta) \hat{A}_i, \operatorname{clip}(\rho_i(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_i \right) - \beta \mathbb{D}_{KL}(\pi_\theta \parallel \pi_{\text{ref}}) \right) \right]$$
+Combining the group surrogate loss and the reference penalty yields the final optimization objective:
+
+$$ \mathcal{J}_{\text{GRPO}}(\theta) = \mathbb{E}_{q \sim P(Q), \{o_i\}_{i=1}^G \sim \pi_{\theta_{\text{old}}}} \left[ \frac{1}{G} \sum_{i=1}^G \left( \min \left( \rho_i(\theta) \hat{A}_i, \mathop{\mathrm{clip}}(\rho_i(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_i \right) - \beta \mathbb{D}_{KL}(\pi_\theta \parallel \pi_{\text{ref}}) \right) \right] $$
 
 Where:
 * $G$ is the group size (typically 4 to 16 **depends upon compute*).
