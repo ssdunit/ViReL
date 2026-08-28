@@ -225,7 +225,7 @@ def load_robo2vlm(
        	),
         num_proc=8,
         writer_batch_size=100,
-        load_from_cache_file=False,
+        load_from_cache_file=True,
     )
     keep_cols = {"prompt", "image","answer_letter"}
     drop_cols = [c for c in dataset.column_names if c not in keep_cols]

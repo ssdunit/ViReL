@@ -19,7 +19,7 @@ class ModelConfig:
 
     MAX_SEQ_LENGTH:int=2048
 
-    LOAD_IN_4BIT: bool=True
+    LOAD_IN_4BIT: bool=False
 
     TORCH_DTYPE: torch.dtype =torch.bfloat16
 
@@ -66,6 +66,7 @@ Rules:
 3. After thinking, output your final choice inside <answer> and </answer> tags.
 4. The content of the <answer> tag MUST be exactly ONE capital letter (e.g., A, B, C, D).
 5. Do not output any other text before <reason> or after </answer>.
+6. Keep your thinking length less than 400 words.
 
 response:
 <think>
@@ -81,11 +82,9 @@ class TrainConfig:
 
     OUTPUT_DIR: str = "./outputs_grpo"
 
-    
-
     NUM_EPOCHS: int = 2
 
-    BATCH_SIZE: int =1
+    BATCH_SIZE: int =2
 
     LEARNING_RATE: float = 1e-6
 
@@ -99,7 +98,7 @@ class TrainConfig:
 
     ADAM_EPSILON: float =1e-8
 
-    GRADIENT_ACCUMULATION_STEPS: int = 16
+    GRADIENT_ACCUMULATION_STEPS: int = 4
 
     LOGGING_STEPS: int = 1
 
@@ -165,7 +164,7 @@ class GRPOConfig:
 
     MAX_PROMPT_LENGTH: int=1536
 
-    MAX_COMPLETION_LENGTH: int =384
+    MAX_COMPLETION_LENGTH: int =256
 
     BETA:float  = 0.15
 

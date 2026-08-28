@@ -70,11 +70,12 @@ def load_model(model_path=None):
         max_seq_length=ModelConfig.MAX_SEQ_LENGTH,
         dtype=ModelConfig.TORCH_DTYPE,
         #load_in_8bit=TrainConfig.Load_in_4bit,
-        load_in_4bit=False,
+        load_in_4bit=True,
         device_map=ModelConfig.DEVICE_MAP,
-        #max_pixels=262144, 
-    
+        #max_pixels=262144,    
     )
+    #tokenizer.image_processor.min_pixels=256*28*28
+    #tokenizer.image_processor.max_pixels=512*28*28
 
     return model, tokenizer
 
@@ -158,7 +159,8 @@ def build_grpo_config():
 
         # Reproducibility
         seed=TrainConfig.RANDOM_STATE,
-        warmup_steps=TrainConfig.WARMUP_STEPS
+        warmup_steps=TrainConfig.WARMUP_STEPS,
+        repetition_penalty=1.15,
     )
 
     return training_args
