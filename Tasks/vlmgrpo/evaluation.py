@@ -10,12 +10,7 @@ from datasets import load_dataset
 from PIL import Image
 from transformers import AutoModelForImageTextToText, AutoProcessor
 
-# Default model — unsloth/Qwen3-VL-8B-Thinking is the full BF16 weight repo
-# (not FP8/GGUF), so it loads fine through the standard transformers
-# Auto* classes below. Requires a recent `transformers` build:
-#   pip install git+https://github.com/huggingface/transformers
-# Older releases raise "model type not recognized" for Qwen3-VL.
-DEFAULT_MODEL_PATH = "unsloth/Qwen3-VL-8B-Thinking"
+DEFAULT_MODEL_PATH = "outputs_sft_coldstart/checkpoint-500"
 
 
 # ============================================================
@@ -688,7 +683,7 @@ def main():
 
     # RoboVista arguments
     parser.add_argument(
-        "--domain", type=str, default="open datasets",
+        "--domain", type=str, default=None,
         help="RoboVista domain to evaluate"
     )
     parser.add_argument(

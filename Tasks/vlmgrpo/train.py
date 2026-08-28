@@ -3,8 +3,7 @@ import os
 import torch 
 from unsloth import FastVisionModel
 from trl import GRPOTrainer,GRPOConfig
-from data_util import load_from_disk
-from data_util import preprocess_example,load_robo2vlm
+from data_util import load_robo2vlm
 from config import(
     ModelConfig,
     DataConfig,
@@ -19,8 +18,8 @@ from reward import(
 )
 from trl import SFTTrainer, SFTConfig
 from unsloth.trainer import UnslothVisionDataCollator 
-'''
-def build_sft_config():
+
+'''def build_sft_config():
     return SFTConfig(
         output_dir=TrainConfig.OUTPUT_DIR + "_sft_coldstart",
         num_train_epochs=1,
@@ -59,8 +58,8 @@ def run_sft_cold_start(model, tokenizer):
         args=build_sft_config(),
     )
     trainer.train()
-    return model
-    '''
+    return model'''
+
 def setup_logging():
     os.environ["WANDB_PROJECT"]=LoggingConfig.PROJECT
     os.environ["WANDB_RUN_NAME"]=LoggingConfig.RUN_NAME
@@ -70,15 +69,11 @@ def load_model(model_path=None):
         model_name=model_path or ModelConfig.MODEL_NAME,
         max_seq_length=ModelConfig.MAX_SEQ_LENGTH,
         dtype=ModelConfig.TORCH_DTYPE,
-        load_in_4bit=TrainConfig.Load_in_4bit,
+        #load_in_8bit=TrainConfig.Load_in_4bit,
+        load_in_4bit=False,
         device_map=ModelConfig.DEVICE_MAP,
         #max_pixels=262144, 
-        
-        # 2. Enable Unsloth's vLLM backend for ultra-fast, memory-efficient GRPO generation
-        fast_inference=False,
-        
-        # 3. Restrict vLLM VRAM allocation so PyTorch has room to train
-        gpu_memory_utilization=0.2,
+    
     )
 
     return model, tokenizer
@@ -112,7 +107,9 @@ def prepare_dataset():
 
 def build_grpo_config():
     training_args = GRPOConfig(
-        # Training
+        log_completions=True,
+        num_completions_to_print=5,  
+      # Training
         output_dir=TrainConfig.OUTPUT_DIR,
         num_train_epochs=TrainConfig.NUM_EPOCHS,
         per_device_train_batch_size=TrainConfig.BATCH_SIZE,
@@ -202,34 +199,23 @@ def main():
     model = apply_lora(model)
 
     #model = run_sft_cold_start(model, tokenizer)
-    found_nonzero = False
-    for name, param in model.named_parameters():
-        if "lora_B" in name:
-            mean_abs = param.abs().mean().item()
-            print(f"{name}: mean_abs = {mean_abs:.6f}")
-            if mean_abs > 1e-6:
-                found_nonzero = True
-
-        if found_nonzero:
-            print("\n✅ SFT-trained adapter weights detected (lora_B is non-zero)")
-        else:
-            print("\n❌ lora_B is all zero — this is an UNTRAINED/fresh adapter, not your SFT checkpoint!")
-    train_dataset = load_robo2vlm(dataset_name="robo2vlm",system_prompt = SYSTEM_PROMPT,tokenizer=tokenizer,split="train")
+    
+    train_dataset = load_robo2vlm(dataset_name="Rauneet/robo2vlm-erqa-plus-combined",system_prompt=SYSTEM_PROMPT,tokenizer=tokenizer,split="train")
     sample = train_dataset[0]
     print("\n========== IMAGE TEST ==========")
 
     print("Keys:", sample.keys())
 
-    print("Image object:", sample["images"][0])
-    print("Image type:", type(sample["images"][0]))
-    print("Image size:", sample["images"][0].size)
-    print("Image mode:", sample["images"][0].mode)
+    print("Image object:", sample["image"])
+    print("Image type:", type(sample["image"]))
+    print("Image size:", sample["image"].size)
+    print("Image mode:", sample["image"].mode)
 
     print("\nPrompt:")
     print(sample["prompt"])
 
     print("================================")
-    test_dataset = load_robo2vlm(dataset_name="robo2vlm",system_prompt=SYSTEM_PROMPT,tokenizer=tokenizer, split="test")
+    test_dataset = load_robo2vlm(dataset_name="Rauneet/robo2vlm-erqa-plus-combined",system_prompt=SYSTEM_PROMPT,tokenizer=tokenizer,split="test")
     sample = train_dataset[0]
 
     

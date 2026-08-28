@@ -18,14 +18,14 @@ No GRPO logic.
 import ast
 from typing import Any, Dict, List, Optional
 
-from datasets import Dataset, DatasetDict, load_from_disk
+from datasets import Dataset
 from datasets import load_dataset
 
 # ==========================================================
 # Dataset Constants
 # ==========================================================
 
-DATASET_NAME = "keplerccc/Robo2VLM-1"#Robo2vlm provides multiple option to choose answer we are providing option in form of A,B,C,D
+DATASET_NAME = "Rauneet/robo2vlm-erqa-plus-combined"#Robo2vlm provides multiple option to choose answer we are providing option in form of A,B,C,D
 
 LETTERS = ["A", "B", "C", "D", "E", "F"]
 
@@ -131,8 +131,7 @@ def build_prompt(
             "role": "user",
             "content": [
                 {
-                    "type": "image",
-                    "image":image,
+                    "type": "image"
                 },
                 {
                     "type": "text",
@@ -182,8 +181,7 @@ def preprocess_example(
     """
     #example["image"] = example["image"].resize((320, 256))
     choices = parse_choices(example["choices"])
-
-    answer_idx = int(example["correct_answer"])
+    answer_idx = int(example["answer_idx"])
     image = example["image"].convert("RGB")
 
     return {
@@ -192,14 +190,12 @@ def preprocess_example(
             system_prompt,
             tokenizer,
         ),
-        "images": [image],
+        "image": image,
         "answer_idx": answer_idx,
         "answer_letter": LETTERS[answer_idx],
         "num_choices": len(choices),
         "task_id": example["id"],
     }
-
-
 # ==========================================================
 # Dataset Loader
 # ==========================================================
@@ -215,22 +211,23 @@ def load_robo2vlm(
     """
     Load and preprocess Robo2VLM.
    """
-    if split=="train":
-        dataset= load_from_disk("./datasets/robo2vlm_train_10k")
-    elif split=="test":
-        dataset=load_from_disk("./datasets/robo2vlm_test_2k")
-    else:
-    	raise ValueError(f"Unkown split: {split}")
+    if split not in ("train","test"):
+        raise ValueError(f"Unknown split: {split}")
+    dataset = load_dataset(dataset_name, split=split)
+
+    if max_samples is not None:
+        dataset = dataset.shuffle(seed=seed).select(range(min(max_samples, len(dataset))))
     dataset = dataset.map(
         lambda x: preprocess_example(
       	x,
         system_prompt,
         tokenizer,
        	),
-	num_proc = 16,
-        load_from_cache_file=True,
+        num_proc=8,
+        writer_batch_size=100,
+        load_from_cache_file=False,
     )
-    keep_cols = {"prompt", "images","answer_letter"}
+    keep_cols = {"prompt", "image","answer_letter"}
     drop_cols = [c for c in dataset.column_names if c not in keep_cols]
     dataset = dataset.remove_columns(drop_cols)
     return dataset
@@ -252,6 +249,7 @@ def load_robo2vlm_splits(
 
 
     train = load_robo2vlm(
+        dataset_name=DATASET_NAME,
         system_prompt=system_prompt,
         tokenizer=tokenizer,
         split="train",
@@ -259,6 +257,7 @@ def load_robo2vlm_splits(
     )
 
     test = load_robo2vlm(
+        dataset_name=DATASET_NAME,
         system_prompt=system_prompt,
         split="test",
         max_samples=test_samples,

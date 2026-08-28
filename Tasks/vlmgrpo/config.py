@@ -19,7 +19,7 @@ class ModelConfig:
 
     MAX_SEQ_LENGTH:int=2048
 
-    LOAD_IN_4BIT: bool=False 
+    LOAD_IN_4BIT: bool=True
 
     TORCH_DTYPE: torch.dtype =torch.bfloat16
 
@@ -79,7 +79,9 @@ Within this should be the visual reasoning
 @dataclass
 class TrainConfig:
 
-    OUTPUT_DIR: str = "./outputs"
+    OUTPUT_DIR: str = "./outputs_grpo"
+
+    
 
     NUM_EPOCHS: int = 2
 
@@ -150,7 +152,7 @@ class TrainConfig:
     ]
     
     RANDOM_STATE = 3407
-    Load_in_4bit: bool = False
+    Load_in_4bit: bool = True
 
 @dataclass
 class GRPOConfig:
@@ -173,9 +175,10 @@ class LoggingConfig:
     RUN_NAME: str ="robo2vlm-grpo"
     PROJECT: str ="Robo2VLM"
     LOG_LEVEL: str ="info"
-
+'''
 @dataclass
 class SFTdataConfig:
     dataset_name="hongxingli/SpatialLadder-26k"
     subset = "spatial"
     split = "train"
+'''
