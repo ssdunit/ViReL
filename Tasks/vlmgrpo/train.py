@@ -150,12 +150,14 @@ def build_grpo_config():
 
         # GRPO
         num_generations=GRPOTrainConfig.NUM_GENERATIONS,
+        steps_per_generation = GRPOTrainConfig.NUM_GENERATIONS,
         temperature=GRPOTrainConfig.TEMPERATURE,
         top_p=GRPOTrainConfig.TOP_P,
         #max_prompt_length=GRPOTrainConfig.MAX_PROMPT_LENGTH,
         max_prompt_length = None,
         max_completion_length=GRPOTrainConfig.MAX_COMPLETION_LENGTH,
         beta=GRPOTrainConfig.BETA,
+        top_k = 0,
 
         # Reproducibility
         seed=TrainConfig.RANDOM_STATE,

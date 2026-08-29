@@ -45,8 +45,8 @@ def format_reward(completions, **kwargs):
             content = str(completion)
 
         content = content.strip()
-        with open("output.txt","a") as file:
-            file.write(f"---RAW COMPLETION---\n{content}\n---END---")
+        #with open("output.txt","a") as file:
+            #file.write(f"---RAW COMPLETION---\n{content}\n---END---")
         score = 0.0
 
         if BASE_FORMAT_PATTERN.search(content):
