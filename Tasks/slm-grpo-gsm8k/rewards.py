@@ -2,11 +2,6 @@
 
 import re
 
-
-# ============================================================
-# REGEX PATTERNS
-# ============================================================
-
 # Extract reasoning from model output
 match_model_reasoning = re.compile(
     r"<reasoning>\s*(.*?)\s*</reasoning>",
@@ -27,11 +22,6 @@ xml_pattern = re.compile(
     r"\s*$",
     flags=re.DOTALL,
 )
-
-
-# ============================================================
-# EXTRACTION FUNCTIONS
-# ============================================================
 
 def get_completion_text(completion):
     """
@@ -73,7 +63,6 @@ def extract_model_reasoning(completion):
 
     return None
 
-
 def extract_model_answer(completion):
     """Extract model answer."""
 
@@ -96,7 +85,6 @@ def extract_model_answer(completion):
         return numbers[-1]
 
     return None
-
 
 def extract_gsm8k_reasoning(text):
     """
@@ -162,10 +150,6 @@ def extract_gsm8k_answer(text):
 
     return None
 
-# ============================================================
-# CORRECT ANSWER REWARD
-# ============================================================
-
 def correct_answer_check(
     completions,
     final_answer,
@@ -203,10 +187,6 @@ def correct_answer_check(
             ground_truth_reasoning = reasoning[i]
         else:
             ground_truth_reasoning = None
-
-        # --------------------------------------------
-        # Calculate answer reward
-        # --------------------------------------------
 
         if (
             model_answer is not None
@@ -258,9 +238,6 @@ def correct_answer_check(
 
         rewards.append(answer_reward)
     return rewards
-# ============================================================
-# XML / FORMAT REWARD
-# ============================================================
 
 def xml_reward_system(
     completions,

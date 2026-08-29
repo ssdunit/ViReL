@@ -34,15 +34,12 @@ Step-by-step mathematical reasoning goes here.
 </answer>
 """
 
-
 HASH_ANSWER_PATTERN = re.compile(r"####\s*(.+?)\s*$", re.MULTILINE)
 
 
 def extract_hash_answer(text: str) -> Optional[str]:
     """Extract the final answer after ####."""
-
     match = HASH_ANSWER_PATTERN.search(text)
-
     if match:
         return match.group(1).strip()
 
@@ -57,27 +54,22 @@ def extract_reasoning(text: str) -> str:
     reasoning steps...
     #### final_answer
     """
-
     if "####" in text:
         reasoning = text.split("####", 1)[0].strip()
         return reasoning
 
     return text.strip()
 
-
 def extract_final_answer(text: str) -> Optional[str]:
     """Extract the final answer from GSM8K format."""
-
     if "####" in text:
         answer = text.split("####", 1)[1].strip()
         return answer
 
     return None
 
-
 def format_prompt(question: str) -> list[dict]:
     """Format question into chat messages."""
-
     return [
         {
             "role": "system",
