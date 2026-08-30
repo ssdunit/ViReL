@@ -13,3 +13,11 @@ Tasks/slm-grpo-gsm8k/grpo-gsm8k-output
 Tasks/slm-grpo-gsm8k/venv/ 
 Tasks/slm-grpo-gsm8k/unsloth_compiled_cache
 
+#COMMON VIRTUAL ENVIRONMENT
+.venv
+
+#VLMGRPO
+grpo_train/vlmgrpo/__pycache__
+grpo_train/vlmgrpo/wandb
+grpo_train/unsloth_compiled_cache
+grpo_train/outputs_grpo
