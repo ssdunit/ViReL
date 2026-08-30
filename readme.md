@@ -1,18 +1,10 @@
 # ViReL — Vision Reinforcement Learning
 
-![Policy](https://img.shields.io/badge/Policy-GRPO-8A2BE2)
-![VLM](https://img.shields.io/badge/VLM-Qwen3--VL--8B--Thinking-blueviolet)
-![Framework](https://img.shields.io/badge/framework-TRL%20%7C%20Unsloth-orange)
-![PEFT](https://img.shields.io/badge/fine--tuning-LoRA-yellow)
-![Python](https://img.shields.io/badge/python-3.10-blue)
-![PyTorch](https://img.shields.io/badge/pytorch-2.x-red)
-![Status](https://img.shields.io/badge/status-experimental-orange)
-
 **Curing spatial blindness in Vision-Language Models.**
  
 ViReL is an ongoing project exploring how far reinforcement learning can push VLMs toward *grounded* spatial reasoning (e.g. "is the mug to the left of the laptop?", "which point is closer to the camera?"). Modern VLMs answer these questions fluently but often incorrectly, because next-token cross-entropy loss rewards fluent-sounding answers, not physically correct ones. ViReL's goal is to close that gap using policies such as **GRPO** (Group Relative Policy Optimization) and, eventually, **GSPO**.
  
-> For the full technical write-up (problem framing, GRPO vs PPO derivation, failure-mode examples from our own training runs), see [`blog.md`](./blog.md).
+> For the full technical write-up (problem framing, GRPO vs PPO derivation, failure-mode examples from our own training runs), see [`blog.md`](./blog.md). *In Progress currently in `Tree/sunit`*
 
 ### SFT on a VLM (Flower Classification)
 [`Tasks/vlm-sft-flowerclassification/`](./Tasks/vlm-sft-flowerclassification/)
@@ -96,9 +88,9 @@ against that group's own mean/std. This roughly halves the VRAM footprint of
 PPO (no critic model of the same size as the policy) at the cost of needing
 several completions per prompt per step.
 
-## Project structure — `build_grpo/`
+## Project structure — `grpo_train/`
 ```
-build_grpo/
+grpo_train/
 ├── config.py              # All hyperparameters, model/data/training/GRPO/logging settings
 ├── data_util.py           # Dataset loading + Qwen3-VL prompt formatting
 ├── reward.py              # GRPO reward functions (format + answer correctness)
@@ -120,17 +112,17 @@ build_grpo/
 
 ### Pipeline
 
-1. **Data preparation** (`local_robo2vlm.py`) — sample, sanity-check, and
+1. **Data preparation** (`local_robo2vlm.py`) - sample, sanity-check, and
    snapshot a fixed train/test split from Robo2VLM-1.
-2. **Preprocessing** (`data_util.py`) — parse multiple-choice options, build
+2. **Preprocessing** (`data_util.py`) - parse multiple-choice options, build
    Qwen3-VL chat prompts with the required `<think>/<answer>` output format,
    cap image resolution.
-3. **Pre-flight checks** (`preflight.py`) — verify the dataset/model pairing
+3. **Pre-flight checks** (`preflight.py`) - verify the dataset/model pairing
    won't silently lose image tokens to truncation or fail to stop generation.
-4. **Training** (`train.py`, `config.py`, `reward.py`) — LoRA + GRPO
+4. **Training** (`train.py`, `config.py`, `reward.py`) - LoRA + GRPO
    fine-tuning of Qwen3-VL-8B-Thinking via Unsloth, rewarded on output format
    and answer correctness.
-5. **Evaluation** (`evaluation.py`, `linux_inference.sh`) — single-question
+5. **Evaluation** (`evaluation.py`, `linux_inference.sh`) - single-question
    inspection or full batch evaluation against RoboVista, with per-domain
    breakdowns and an Excel report.
 
